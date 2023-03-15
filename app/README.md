@@ -6,6 +6,3 @@
 
 Внутри контейнера установить зависимости:
 `composer install`
-
-Внутри контейнера install Symfony CLI:
-`curl -sS https://get.symfony.com/cli/installer | bash`

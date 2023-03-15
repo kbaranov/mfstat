@@ -1,0 +1,12 @@
+POST {{host-api}}/visits
+Content-Type: application/json
+Accept: application/json
+
+{
+  "country": "US"
+}
+
+###
+
+GET {{host-api}}/visits
+Accept: application/json

@@ -6,7 +6,6 @@ namespace App\Api\Controller;
 use App\Api\Request\PostVisitsDto;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use OpenApi\Annotations as OA;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -14,8 +13,41 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @OA\Tag(name="Visits")
  */
-class VisitsController extends AbstractController
+class VisitsController extends ApiController
 {
+    const REDIS_HASH_KEY = 'visits';
+
+    const COUNTRIES = [
+        "AE" => "United Arab Emirates",
+        "AU" => "Australia",
+        "BR" => "Brazil",
+        "CA" => "Canada",
+        "CN" => "China",
+        "DE" => "Germany",
+        "ES" => "Spain",
+        "FR" => "France",
+        "GB" => "United Kingdom",
+        "ID" => "Indonesia",
+        "IN" => "India",
+        "IT" => "Italy",
+        "JP" => "Japan",
+        "KR" => "South Korea",
+        "MX" => "Mexico",
+        "MY" => "Malaysia",
+        "NL" => "Netherlands",
+        "PH" => "Philippines",
+        "PK" => "Pakistan",
+        "RU" => "Russia",
+        "SA" => "Saudi Arabia",
+        "TH" => "Thailand",
+        "TR" => "Turkey",
+        "TW" => "Taiwan",
+        "UA" => "Ukraine",
+        "US" => "United States",
+        "VN" => "Vietnam",
+        "ZA" => "South Africa",
+    ];
+
     /**
      * @Route(
      *     path="/visits",
@@ -37,16 +69,22 @@ class VisitsController extends AbstractController
      */
     public function getAction(): JsonResponse
     {
-        $response = [];
-
-        // TODO: Extract data from Redis
-        $data = ["US" => 1000, "UK" => 2000,"CA" => 3000];
-
-        foreach ($data as $country => $quantity) {
-            $response[$country] = $quantity;
+        try {
+            $data = $this->redis->hgetall(self::REDIS_HASH_KEY);
+        } catch (\Throwable $exception) {
+            $this->logger->error('Error while getting data from Redis', [
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'code' => $exception->getCode(),
+            ]);
+            $data = [
+                'message' => 'Error while getting data.',
+            ];
+            $status = Response::HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        return new JsonResponse($response, Response::HTTP_OK);
+        return new JsonResponse($data, $status ?? Response::HTTP_OK);
     }
 
     /**
@@ -63,7 +101,7 @@ class VisitsController extends AbstractController
      * )
      *
      * @OA\Response(
-     *     response=200,
+     *     response=201,
      *     description="The visit stored successed."
      * )
      *
@@ -84,26 +122,38 @@ class VisitsController extends AbstractController
     {
         $country = $dto->getCountry();
 
-        if ($country === null) {
-            $response = [
+        if (!key_exists($country, self::COUNTRIES)) {
+            $data = [
                 'message' => 'Validation errors in your request.',
                 'errors' => [
                     [
-                        'message' => 'Oops! The value is invalid.',
+                        'message' => 'The value is invalid.',
                         'field' => 'country',
                     ],
                 ]
             ];
-
-            return new JsonResponse($response, Response::HTTP_BAD_REQUEST);
+            return new JsonResponse($data, Response::HTTP_BAD_REQUEST);
         }
 
-        // TODO: Insert data to Redis
+        try {
+            $this->redis->hincrby(self::REDIS_HASH_KEY, $country, 1);
+        } catch (\Throwable $exception) {
+            $this->logger->error('Error while getting data from Redis', [
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'code' => $exception->getCode(),
+            ]);
+            $data = [
+                'message' => 'Error while storing data.',
+            ];
+            return new JsonResponse($data, Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
 
-        $response = [
+        $data = [
             'message' => 'The visit from ' . $country . ' was stored successfully.',
         ];
 
-        return new JsonResponse($response, Response::HTTP_CREATED);
+        return new JsonResponse($data, Response::HTTP_CREATED);
     }
 }

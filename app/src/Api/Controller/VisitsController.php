@@ -15,7 +15,8 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class VisitsController extends ApiController
 {
-    const REDIS_HASH_KEY = 'visits';
+    public const VISITS_STORAGE_KEY = 'visits';
+    public const VISITS_CACHE_STORAGE_KEY = 'visits_cache';
 
     const COUNTRIES = [
         "AE" => "United Arab Emirates",
@@ -70,7 +71,7 @@ class VisitsController extends ApiController
     public function getAction(): JsonResponse
     {
         try {
-            $data = $this->redis->hgetall(self::REDIS_HASH_KEY);
+            $data = json_decode($this->redis->get(self::VISITS_CACHE_STORAGE_KEY), true);
         } catch (\Throwable $exception) {
             $this->logger->error('Error while getting data from Redis', [
                 'message' => $exception->getMessage(),
@@ -136,7 +137,7 @@ class VisitsController extends ApiController
         }
 
         try {
-            $this->redis->hincrby(self::REDIS_HASH_KEY, $country, 1);
+            $this->redis->hincrby(self::VISITS_STORAGE_KEY, $country, 1);
         } catch (\Throwable $exception) {
             $this->logger->error('Error while getting data from Redis', [
                 'message' => $exception->getMessage(),

@@ -32,11 +32,14 @@ class StoreVisitsCommand extends Command
     {
         while (true) {
             try {
-                $this->redis->multi();
+                $items = [];
                 for ($i = 0; $i < self::LOOP_ITEMS_COUNT; $i++) {
-                    $this->redis->lpop(VisitsController::VISITS_QUEUE_STORAGE_KEY);
+                    $item = $this->redis->lpop(VisitsController::VISITS_QUEUE_STORAGE_KEY);
+                    if (empty($item)) {
+                        break;
+                    }
+                    $items[] = $item;
                 }
-                $items = $this->redis->exec();
             } catch (\Throwable $exception) {
                 $this->logger->error('Error while getting data from Redis', [
                     'message' => $exception->getMessage(),
@@ -55,6 +58,7 @@ class StoreVisitsCommand extends Command
             try {
                 $visits = [];
                 foreach ($items as $country) {
+
                     if (key_exists($country, $visits)) {
                         $visits[$country]++;
                     } else {

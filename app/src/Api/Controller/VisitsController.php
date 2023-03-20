@@ -17,6 +17,7 @@ class VisitsController extends ApiController
 {
     public const VISITS_STORAGE_KEY = 'visits';
     public const VISITS_CACHE_STORAGE_KEY = 'visits_cache';
+    public const VISITS_QUEUE_STORAGE_KEY = 'visits_queue';
 
     const COUNTRIES = [
         "AE" => "United Arab Emirates",
@@ -32,21 +33,13 @@ class VisitsController extends ApiController
         "IN" => "India",
         "IT" => "Italy",
         "JP" => "Japan",
-        "KR" => "South Korea",
         "MX" => "Mexico",
         "MY" => "Malaysia",
         "NL" => "Netherlands",
         "PH" => "Philippines",
-        "PK" => "Pakistan",
-        "RU" => "Russia",
-        "SA" => "Saudi Arabia",
         "TH" => "Thailand",
         "TR" => "Turkey",
-        "TW" => "Taiwan",
-        "UA" => "Ukraine",
         "US" => "United States",
-        "VN" => "Vietnam",
-        "ZA" => "South Africa",
     ];
 
     /**
@@ -137,7 +130,7 @@ class VisitsController extends ApiController
         }
 
         try {
-            $this->redis->hincrby(self::VISITS_STORAGE_KEY, $country, 1);
+            $this->redis->rpush(self::VISITS_QUEUE_STORAGE_KEY, [$country]);
         } catch (\Throwable $exception) {
             $this->logger->error('Error while getting data from Redis', [
                 'message' => $exception->getMessage(),

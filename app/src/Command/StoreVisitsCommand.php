@@ -58,7 +58,6 @@ class StoreVisitsCommand extends Command
             try {
                 $visits = [];
                 foreach ($items as $country) {
-
                     if (key_exists($country, $visits)) {
                         $visits[$country]++;
                     } else {
